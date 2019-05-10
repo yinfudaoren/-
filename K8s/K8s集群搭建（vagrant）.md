@@ -85,7 +85,7 @@ vim /etc/hosts
 添加以下内容
 
 ```shell
-192.168.200.10  manger manger
+192.168.200.10  manager manager
 192.168.200.11  worker1 worker1
 192.168.200.12  worker2 worker2
 ```
