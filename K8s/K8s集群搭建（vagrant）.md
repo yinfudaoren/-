@@ -7,19 +7,19 @@ Vagrant.require_version ">= 1.6.0"
 
 boxes = [
     {
-        :name => "manager",
+        :name => "manager-0",
         :eth1 => "192.168.200.10",
         :mem => "1024",
         :cpu => "4"
     },
     {
-        :name => "worker1",
+        :name => "worker-0",
         :eth1 => "192.168.200.11",
         :mem => "1024",
         :cpu => "2"
     },
     {
-        :name => "worker2",
+        :name => "worker-1",
         :eth1 => "192.168.200.12",
         :mem => "1024",
         :cpu => "2"
@@ -59,13 +59,13 @@ end
 yum install -y vim wget
 ```
 
-配置docker yum源，安装及启动。现使用的docker版本为docker-ce-18.06
+配置docker yum源（阿里），安装及启动。现使用的docker版本为docker-ce-18.09（k8s官网现在支持的最新版本）
 
 ```shell
 cd /etc/yum.repos.d/
 wget https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 
-yum -y install docker-ce-18.06.1.ce-3.el7
+yum install -y docker-ce-18.09.8-3.el7
 
 systemctl enable docker && systemctl start docker
 ```
@@ -85,14 +85,14 @@ vim /etc/hosts
 添加以下内容
 
 ```shell
-192.168.200.10  manager manager
-192.168.200.11  worker1 worker1
-192.168.200.12  worker2 worker2
+192.168.200.10  manager-0 manager-0
+192.168.200.11  worker-0 worker-0
+192.168.200.12  worker-1 worker-1
 ```
 
 ### K8s准备
 
-配置K8s源,使用的为阿里源
+配置K8s源,使用的是阿里源
 
 ```shell
 vim /etc/yum.repos.d/kubernetes.repo
@@ -115,10 +115,10 @@ repo_gpgcheck=1
 gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 ```
 
-安装kubeadm等，版本为13.3
+安装kubeadm等
 
 ```shell
-yum install -y kubectl-1.13.3 kubelet-1.13.3 kubeadm-1.13.3 
+yum install -y kubectl kubelet kubeadm
 ```
 
 设置内核参数
@@ -154,7 +154,7 @@ systemctl enable kubelet && systemctl start kubelet
 使用kubeadm初始化
 
 ```shell
-kubeadm init --apiserver-advertise-address=192.168.200.10 --image-repository registry.aliyuncs.com/google_containers --kubernetes-version v1.13.3 --pod-network-cidr=10.244.0.0/16 --service-dns-domain=cluster.local --ignore-preflight-errors=Swap --ignore-preflight-errors=NumCPU
+kubeadm init --apiserver-advertise-address=192.168.200.10 --image-repository registry.aliyuncs.com/google_containers --pod-network-cidr=192.168.0.0/16 --service-dns-domain=cluster.local --ignore-preflight-errors=Swap --ignore-preflight-errors=NumCPU
 ```
 
 初始化成功应该会出现如下情景
@@ -166,19 +166,20 @@ You can now join any number of machines by running the following on each node...
 执行以下命令，使得使用kubectl更为方便
 
 ```shell
+cd
 mkdir -p $HOME/.kube
 cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-配置网络插件，可以选择flannel ，但个人使用中出现问题，最终选择使用canal
+配置网络插件，选择使用canal,所以cidr地址为192.168.0.0/16
 
 ```shell
-kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/canal/rbac.yaml
-kubectl apply -f https://docs.projectcalico.org/v3.3/getting-started/kubernetes/installation/hosted/canal/canal.yaml
+curl https://docs.projectcalico.org/v3.8/manifests/calico.yaml -O
+kubectl apply -f calico.yaml
 ```
 
-### 从节点（worker1和2）
+### 从节点（worker-0和-1）
 
 在主节点执行如下命令获取加入集群指令后再在从节点执行
 
@@ -210,10 +211,3 @@ alias kc='kubectl'
 source <(kubectl completion bash | sed s/kubectl/kc/g)
 ```
 
-## 进一步
-
-访问[K8s文档基础部分](https://kubernetes.io/zh/docs/tutorials/kubernetes-basics/)尝试体验
-
-[中文官方文档](https://kubernetes.io/zh/docs/)
-
-书籍推荐：[Kubernetes in Action中文版](<https://book.douban.com/subject/30418855/>)
