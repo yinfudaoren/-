@@ -172,7 +172,7 @@ cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-配置网络插件，选择使用canal,所以cidr地址为192.168.0.0/16
+配置网络插件，选择使用calico,所以cidr地址为192.168.0.0/16
 
 ```shell
 curl https://docs.projectcalico.org/v3.8/manifests/calico.yaml -O
