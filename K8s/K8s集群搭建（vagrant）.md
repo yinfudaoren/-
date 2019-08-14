@@ -8,19 +8,19 @@ Vagrant.require_version ">= 1.6.0"
 boxes = [
     {
         :name => "manager-0",
-        :eth1 => "192.168.200.10",
+        :eth1 => "192.169.200.10",
         :mem => "1024",
         :cpu => "4"
     },
     {
         :name => "worker-0",
-        :eth1 => "192.168.200.11",
+        :eth1 => "192.169.200.11",
         :mem => "1024",
         :cpu => "2"
     },
     {
         :name => "worker-1",
-        :eth1 => "192.168.200.12",
+        :eth1 => "192.169.200.12",
         :mem => "1024",
         :cpu => "2"
     }
@@ -53,6 +53,20 @@ end
 
 ### 基础准备
 
+更改hosts
+
+```shell
+vim /etc/hosts
+```
+
+添加以下内容
+
+```shell
+192.169.200.10  manager-0 manager-0
+192.169.200.11  worker-0 worker-0
+192.169.200.12  worker-1 worker-1
+```
+
 由于vagrant machine比较精简所以先安装必要软件
 
 ```shell
@@ -67,27 +81,22 @@ wget https://mirrors.aliyun.com/docker-ce/linux/centos/docker-ce.repo
 
 yum install -y docker-ce-18.09.8-3.el7
 
+mkdir /etc/docker/
+cat <<EOF > /etc/docker/daemon.json
+{
+    "graph": "/docker/data/path",
+    "exec-opts": ["native.cgroupdriver=systemd"]
+}
+EOF
+
 systemctl enable docker && systemctl start docker
 ```
 
-关闭swap分区（若机器关机重启需再次执行此命令，可以执行使其开机初始化）
+关闭swap分区
 
 ```shell
 swapoff -a
-```
-
-更改hosts
-
-```shell
-vim /etc/hosts
-```
-
-添加以下内容
-
-```shell
-192.168.200.10  manager-0 manager-0
-192.168.200.11  worker-0 worker-0
-192.168.200.12  worker-1 worker-1
+sed -i '/swap/s/^\(.*\)$/#\1/g' /etc/fstab
 ```
 
 ### K8s准备
@@ -124,21 +133,18 @@ yum install -y kubectl kubelet kubeadm
 设置内核参数
 
 ```shell
-cat <<EOF > /etc/sysctl.d/k8s.conf
-
-net.bridge.bridge-nf-call-ip6tables = 1
-
+cat > /etc/sysctl.d/kubernetes.conf <<EOF
 net.bridge.bridge-nf-call-iptables = 1
-
+net.bridge.bridge-nf-call-ip6tables = 1
 net.ipv4.ip_forward = 1
-
 EOF
 ```
 
 使配置生效
 
 ```shell
-sysctl --system
+modprobe br_netfilter
+sysctl -p /etc/sysctl.d/kubernetes.conf
 ```
 
 启动kubelet
@@ -154,7 +160,7 @@ systemctl enable kubelet && systemctl start kubelet
 使用kubeadm初始化
 
 ```shell
-kubeadm init --apiserver-advertise-address=192.168.200.10 --image-repository registry.aliyuncs.com/google_containers --pod-network-cidr=192.168.0.0/16 --service-dns-domain=cluster.local --ignore-preflight-errors=Swap --ignore-preflight-errors=NumCPU
+kubeadm init --apiserver-advertise-address=192.169.200.10 --image-repository registry.aliyuncs.com/google_containers --pod-network-cidr=192.168.0.0/16 --service-dns-domain=cluster.local --ignore-preflight-errors=Swap --ignore-preflight-errors=NumCPU
 ```
 
 初始化成功应该会出现如下情景
