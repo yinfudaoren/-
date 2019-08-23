@@ -53,6 +53,12 @@ end
 
 ### 基础准备
 
+由于vagrant machine比较精简所以先安装必要软件
+
+```shell
+yum install -y vim wget
+```
+
 更改hosts
 
 ```shell
@@ -67,13 +73,7 @@ vim /etc/hosts
 192.169.200.12  worker-1 worker-1
 ```
 
-由于vagrant machine比较精简所以先安装必要软件
-
-```shell
-yum install -y vim wget
-```
-
-配置docker yum源（阿里），安装及启动。现使用的docker版本为docker-ce-18.09（k8s官网现在支持的最新版本）
+配置docker yum源（阿里），安装及启动。现使用的docker版本为docker-ce-18.09。可以根据需求更改docker版本，但请注意k8s官方支持。
 
 ```shell
 cd /etc/yum.repos.d/
@@ -124,7 +124,7 @@ repo_gpgcheck=1
 gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg
 ```
 
-安装kubeadm等
+安装kubeadm等，个人此时安装的版本为1.15
 
 ```shell
 yum install -y kubectl kubelet kubeadm
